@@ -7,6 +7,7 @@ from labels import standard
 from graph import *
 from core.file import NuMLFile
 import plotly.express as px
+from collections import deque
     
 def single_plane_graph_vis(key, hit, part, edep, sp, l=standard):
     """Process an event into graphs"""
@@ -48,6 +49,80 @@ def single_plane_graph_vis(key, hit, part, edep, sp, l=standard):
 
     return planes
 
+def extract_hierarchy(planes_arr, part, key):
+    # assuming tree structure
+    def bfs(adj_list, info):
+        rows = []
+        indices = []
+        q = deque()
+        q.append(0)
+        while len(q):
+            size = len(q)
+            for _ in range(size):
+                node = q.popleft()
+                if node:
+                    rows.append([info[node][0], info[node][1], info[node][2], adj_list[node]])
+                else:
+                    rows.append([None, None, 0, adj_list[node]])
+                indices.append(node)
+                q.extend(adj_list[node])
+        
+        hierarchy = pd.DataFrame(rows, columns=['type', 'momentum', 'hit_count', 'neighbors'], index=indices)
+        return hierarchy
+
+              
+    h_planes = []
+    for plane in planes_arr:
+        adj_list = {}
+        for p in plane['parent_id'].unique():
+            adj_list[p] = plane[plane['parent_id'] == p]['g4_id'].unique()
+        for p in plane['g4_id'].unique():
+            if p not in adj_list:
+                adj_list[p] = []
+        
+        evt_part = part.loc[key].reset_index(drop=True)
+        info = {p : (evt_part[evt_part.g4_id == p]['type'].values[0], 
+                     evt_part[evt_part.g4_id == p]['momentum'].values[0], 
+                     plane[plane.g4_id == p].shape[0]) for p in plane['g4_id'].unique()}  
+        h_planes.append(bfs(adj_list, info))
+        
+    return h_planes
+
+# def extract_hierarchy(part, key):
+#     # assuming tree structure
+#     def bfs(adj_list, info):
+#         rows = []
+#         indices = []
+#         q = deque()
+#         q.append(0)
+#         while len(q):
+#             size = len(q)
+#             for _ in range(size):
+#                 node = q.popleft()
+#                 if node:
+#                     rows.append([info[node][0], info[node][1], adj_list[node]])
+#                 else:
+#                     rows.append([None, None, adj_list[node]])
+#                 indices.append(node)
+#                 q.extend(adj_list[node])
+        
+#         hierarchy = pd.DataFrame(rows, columns=['type', 'momentum', 'neighbors'], index=indices)
+#         return hierarchy
+
+#     evt_part = part.loc[key].reset_index(drop=True)
+   
+#     adj_list = {}
+#     for p in evt_part['parent_id'].unique():
+#         adj_list[p] = evt_part[evt_part['parent_id'] == p]['g4_id'].tolist()
+#     for p in evt_part['g4_id']:
+#         if p not in adj_list:
+#             adj_list[p] = []
+
+#     evt_part = part.loc[key].reset_index(drop=True)
+#     info = {p : (evt_part[evt_part.g4_id == p]['type'].values[0], 
+#                  evt_part[evt_part.g4_id == p]['momentum'].values[0]) for p in evt_part['g4_id']}  
+        
+#     return bfs(adj_list, info)
 
 def handle_planes(planes_arr):
     particle_dtype = pd.CategoricalDtype(["pion",
@@ -92,7 +167,7 @@ def plot_event(df, print_out=True, write=False):
         fig.show()
 
     if write:
-        fig.write_html("events/nue_sample/%i_%i_%i.html" %(planes[0].iloc[0]['run'],planes[0].iloc[0]['subrun'],planes[0].iloc[0]['event']))
+        fig.write_html("events/numu_sample/%i_%i_%i.html" %(df.iloc[0]['run'],df.iloc[0]['subrun'],df.iloc[0]['event']))
 
 def concat_events(fname):
     f = NuMLFile(fname)
