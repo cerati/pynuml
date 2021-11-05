@@ -9,23 +9,20 @@ from core.file import NuMLFile
 import plotly.express as px
 from collections import deque
     
-def single_plane_graph_vis(key, hit, part, edep, sp, l=standard):
+def single_plane_graph_vis(evt, l=standard):
     """Process an event into graphs"""
-    # skip any events with no simulated hits
-    if (hit.index==key).sum() == 0: return
-    if (edep.index==key).sum() == 0: return
 
     # get energy depositions, find max contributing particle, and ignore any hits with no truth
-    evt_edep = edep.loc[key].reset_index(drop=True)
+    evt_edep = evt["edep_table"]
     evt_edep = evt_edep.loc[evt_edep.groupby("hit_id")["energy_fraction"].idxmax()]
-    evt_hit = evt_edep.merge(hit.loc[key].reset_index(), on="hit_id", how="inner")
+    evt_hit = evt_edep.merge(evt["hit_table"], on="hit_id", how="inner")
 
     # skip events with fewer than 50 simulated hits in any plane
     for i in range(3):
         if (evt_hit.global_plane==i).sum() < 50: return
 
     # get labels for each particle
-    evt_part = part.loc[key].reset_index(drop=True)
+    evt_part = evt["particle_table"]
     evt_part = l.semantic_label(evt_part)
 
     parent_dict = {0 : ["No Info", "No Info"]}
@@ -143,7 +140,7 @@ def handle_planes(planes_arr):
     return pd.concat(planes_arr)
 
 
-def plot_event(df, print_out=True, write=False):
+def plot_event(df, print_out=True, write=None):
     color_dict = {"pion" : "yellow",
       "muon" : "green",
       "kaon" : "black",
@@ -167,7 +164,7 @@ def plot_event(df, print_out=True, write=False):
         fig.show()
 
     if write:
-        fig.write_html("events/numu_sample/%i_%i_%i.html" %(df.iloc[0]['run'],df.iloc[0]['subrun'],df.iloc[0]['event']))
+        fig.write_html(write)
 
 def concat_events(fname):
     f = NuMLFile(fname)
