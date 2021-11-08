@@ -46,7 +46,7 @@ def single_plane_graph_vis(evt, l=standard):
 
     return planes
 
-def extract_hierarchy(planes_arr, part, key):
+def extract_hierarchy(planes_arr, evt_part):
     # assuming tree structure
     def bfs(adj_list, info):
         rows = []
@@ -77,7 +77,6 @@ def extract_hierarchy(planes_arr, part, key):
             if p not in adj_list:
                 adj_list[p] = []
         
-        evt_part = part.loc[key].reset_index(drop=True)
         info = {p : (evt_part[evt_part.g4_id == p]['type'].values[0], 
                      evt_part[evt_part.g4_id == p]['momentum'].values[0], 
                      plane[plane.g4_id == p].shape[0]) for p in plane['g4_id'].unique()}  
