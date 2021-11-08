@@ -60,6 +60,39 @@ def panoptic_label(part):
         elif abs(parent_type) == 13 and (part.start_process == b'muMinusCaptureAtRest' \
           or part.start_process == b'muPlusCaptureAtRest' or part.start_process == b'Decay'):
           sl = label.michel.value
+          slc = label.michel.value
+
+        elif part.start_process == b'conv':
+          if part.momentum >=0.02:
+            sl = label.shower.value
+            slc = label.shower.value
+          else:
+            sl = label.diffuse.value
+            slc = label.diffuse.value
+        elif part.end_process == b'conv':
+          if part.momentum >= 0.02:
+            sl = label.shower.value
+            slc = label.shower.value
+          else:
+            sl = label.diffuse.value
+            slc = label.diffuse.value
+        elif part.start_process == b'compt':
+          if part.momentum >= 0.02:
+            sl = label.shower.value
+            slc = label.shower.value
+          else:
+            sl = label.diffuse.value
+            slc = label.diffuse.value
+        elif part.end_process == b'compt':
+          if part.momentum >= 0.02:
+            sl = label.shower.value
+            slc = label.shower.value
+          else:
+            sl = label.diffuse.value
+            slc = label.diffuse.value
+        elif part.start_process == b'eBrem' or part.end_process == b'phot' \
+          or part.end_process == b'photonNuclear':
+          sl = label.diffuse.value
           slc = None
         elif part.start_process == b'muIoni' or part.start_process == b'hIoni' \
           or part.start_process == b'eIoni':
@@ -90,22 +123,40 @@ def panoptic_label(part):
         return sl, slc
 
       def gamma_labeler(part, parent_type):
-        if part.end_process == b'conv':
+        if part.start_process == b'conv':
           if part.momentum >=0.02:
             sl = label.shower.value
+            slc = label.shower.value
           else:
             sl = label.diffuse.value
+            slc = label.diffuse.value
+        elif part.end_process == b'conv':
+          if part.momentum >= 0.02:
+            sl = label.shower.value
+            slc = label.shower.value
+          else:
+            sl = label.diffuse.value
+            slc = label.diffuse.value
         elif part.start_process == b'compt':
           if part.momentum >= 0.02:
             sl = label.shower.value
+            slc = label.shower.value
           else:
             sl = label.diffuse.value
+            slc = label.diffuse.value
+        elif part.end_process == b'compt':
+          if part.momentum >= 0.02:
+            sl = label.shower.value
+            slc = label.shower.value
+          else:
+            sl = label.diffuse.value
+            slc = label.diffuse.value
         elif part.start_process == b'eBrem' or part.end_process == b'phot' \
           or part.end_process == b'photonNuclear':
           sl = label.diffuse.value
+          slc = None
         else:
           raise Exception('gamma interaction failed to be labeled as expected')
-        slc = sl
         return sl, slc
 
       def unlabeled_particle(part, parent_type):
