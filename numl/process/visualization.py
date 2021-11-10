@@ -8,6 +8,8 @@ from graph import *
 from core.file import NuMLFile
 import plotly.express as px
 from collections import deque
+import networkx as nx
+import matplotlib.pyplot as plt
     
 def single_plane_graph_vis(evt, l=standard):
     """Process an event into graphs"""
@@ -210,3 +212,22 @@ def histogram_slice(data, metric, log_scale=False, write=False):
     fig.show()
     
     if write: fig.write_html("hist_nue.html")
+
+def vis_hierarchy(hier_df):
+    ''' Visualize the tree hierarchy of a particle event '''
+    # make a list of all the edges
+    edges = []
+    for particle in hier_df.index.values:
+        if hier_df.iloc[particle]['neighbors'] == []: 
+            break
+        else:
+            for neighbor in hier_df.iloc[particle]['neighbors']:
+                edges.append((particle, neighbor))
+    
+    # turn this list into a networkx graph and visualize
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+    
+    plt.figure()
+    nx.draw_networkx(G)
+    plt.show()
