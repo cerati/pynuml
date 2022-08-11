@@ -81,22 +81,31 @@ def process_event(event_id, evt, l, e, lower_bnd=20, **edge_args):
   
   pd.set_option('display.max_columns',None)
   print("proportion of energy_fraction not-null:",len(evt_hit.loc[evt_hit['energy_fraction'].notnull(),'energy_fraction'])," out of ", len(evt_hit['energy_fraction']))
+
+
+  # output fraction of non-cosmics into a text file
+  with open('/work1/fwk/hxzhang/exatrkx-work/cosmics/nue_slice_fraction.txt','a') as fraction_file:
+      fraction_file.write(f"\n{len(evt_hit.loc[evt_hit['energy_fraction'].notnull(),'energy_fraction'])} {len(evt_hit['energy_fraction'])} {len(evt_hit.loc[evt_hit['energy_fraction'].notnull(),'energy_fraction'])/len(evt_hit['energy_fraction'])}")
+
+
   evt_hit['is_cosmic'] = False
   evt_hit.loc[evt_hit['energy_fraction'].isnull(), 'is_cosmic'] = True
   print("proportion of correctly classfied not-cosmic:", len(evt_hit.loc[evt_hit['energy_fraction'].notnull(),'is_cosmic']==False)," out of ",len(evt_hit.loc[evt_hit['energy_fraction'].notnull(),'is_cosmic']))
   evt_hit = evt_hit.drop("energy_fraction", axis=1)
-  print(evt_hit.iloc[::5,:])
+  #print(evt_hit.iloc[::5,:])
+
+  print(f"r{event_id[0]}_sr{event_id[1]}_evt{event_id[2]}")
 
   # skip events with fewer than lower_bnd simulated hits in any plane
   for i in range(3):
-    if (evt_hit.global_plane==i).sum() < lower_bnd: return
+    if (evt_hit[~evt_hit['is_cosmic']].global_plane==i).sum() < lower_bnd: return
 
   # get labels for each particle
   evt_part = l(evt["particle_table"])
 
   # join the dataframes to transform particle labels into hit labels
   evt_hit = evt_hit.merge(evt_part, on="g4_id", how="left")
-  print(evt_hit.iloc[::5,:])  
+  #print(evt_hit.iloc[::5,:])  
   #print("cosmic out of all: ",(~evt_hit['is_cosmic']).sum(),"out of ", len(evt_hit['g4_id']))
 
   planes = [ "_u", "_v", "_y" ]
@@ -196,6 +205,17 @@ def process_file(out, fname, g=process_event, l=standard.semantic_label,
 
   # Iterate through event IDs, construct graphs and save them in files
   for i in range(len(evt_list)):
+    if profiling:
+      timing = MPI.Wtime()
+      evt_size = 0
+      for group in evt_list[i].keys():
+        if group != "index":
+          # size in bytes of a Pandas DataFrame
+          evt_size += sys.getsizeof(evt_list[i][group])
+      num_evts += 1
+      evt_size_sum += evt_size
+      if evt_size > evt_size_max : evt_size_max = evt_size
+      if evt_size < evt_size_min : evt_size_min = evt_size
 
     # retrieve event sequence ID
     idx = evt_list[i]["index"]
@@ -206,9 +226,9 @@ def process_file(out, fname, g=process_event, l=standard.semantic_label,
       import os.path as osp, os
       out_file = f"{out.outdir}/r{event_id[0]}_sr{event_id[1]}_evt{event_id[2]}.pt"
       if osp.exists(out_file):
-        if overwrite:
-          os.remove(out_file)
-        else:
+        #if overwrite:
+         # os.remove(out_file)
+        #else:
           print(f"Error: file already exists: {out_file}")
           sys.stdout.flush()
           MPI.COMM_WORLD.Abort(1)
